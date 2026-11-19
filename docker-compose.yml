@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: mcp
+      POSTGRES_PASSWORD: mcp
+      POSTGRES_DB: mcp
+    ports:
+      - '5435:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U mcp']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgres://mcp:mcp@postgres:5432/mcp
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      # Generate with: npm run keys:generate, and put them in .env
+      OAUTH_SIGNING_KEY: ${OAUTH_SIGNING_KEY:?Run npm run keys:generate and put the output in .env}
+      COOKIE_SECRET: ${COOKIE_SECRET:?Run npm run keys:generate and put the output in .env}
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
